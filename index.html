@@ -1,0 +1,698 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Ausbildungs- und Praktikumsfinder</title>
+<meta name="description" content="Suchaufträge für Ausbildungs- und Praktikumsstellen zusammenstellen und im Claude-Chat ausführen.">
+<meta name="theme-color" content="#2343C4">
+<meta name="color-scheme" content="light dark">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Stellenfinder">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,500;62..125,700;62..125,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+html{-webkit-text-size-adjust:100%}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;font-size:14px}
+img{max-width:100%}
+[hidden]{display:none!important}
+.installbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 16px;padding:10px 14px;border:1.5px dashed var(--line);border-radius:10px;background:var(--paper);font-size:14px}
+.installbar .x{margin-left:auto;background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1}
+.offline{font-family:var(--mono);font-size:12px;color:var(--warn)}
+</style>
+<style>
+/* Layout: Arbeitsplatz-Akte – Karteireiter oben, links das Auftragsformular, rechts der fertige Auftrag als „Laufzettel“ */
+:root{
+  --bg:#F3F4F1; --paper:#FFFFFF; --ink:#1B2731; --muted:#5B6873; --line:#D9DDD8;
+  --accent:#2343C4; --accent-ink:#FFFFFF; --accent-soft:#E4E9FB;
+  --mark:#F4CF3A; --hl:#F4CF3A; --mark-soft:#FBF0BF; --ok:#1E7A4C; --warn:#A35B00;
+  --display:"Archivo",system-ui,sans-serif; --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif; --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12181D; --paper:#1A2229; --ink:#E6EAEC; --muted:#9AA6AF; --line:#2D3842;
+  --accent:#8EA4FF; --accent-ink:#0E1430; --accent-soft:#1E2747; --mark:#E8C230; --mark-soft:#3A3315; --hl:#5C4C10; --ok:#5FCB92; --warn:#F0A64A; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12181D; --paper:#1A2229; --ink:#E6EAEC; --muted:#9AA6AF; --line:#2D3842;
+  --accent:#8EA4FF; --accent-ink:#0E1430; --accent-soft:#1E2747; --mark:#E8C230; --mark-soft:#3A3315; --hl:#5C4C10; --ok:#5FCB92; --warn:#F0A64A; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:20px;padding-block:28px 60px}
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px;margin-bottom:22px}
+h1{font-family:var(--display);font-stretch:78%;font-weight:800;font-size:clamp(28px,5vw,44px);line-height:1.02;margin:0;letter-spacing:-.01em;text-wrap:balance}
+h1 .hl{background:linear-gradient(transparent 58%,var(--hl) 58%);padding:0 .08em}
+.lede{margin:8px 0 0;color:var(--muted);max-width:62ch}
+.stamp{font-family:var(--mono);font-size:12px;color:var(--muted);border:1.5px dashed var(--line);border-radius:6px;padding:6px 10px;white-space:nowrap}
+nav.tabs{display:flex;gap:4px;border-bottom:2px solid var(--ink);overflow-x:auto;scrollbar-width:none}
+nav.tabs button{font-family:var(--display);font-stretch:85%;font-weight:700;font-size:15px;background:transparent;color:var(--muted);border:2px solid transparent;border-bottom:none;border-radius:8px 8px 0 0;padding:9px 16px;cursor:pointer;white-space:nowrap;margin-bottom:-2px}
+nav.tabs button[aria-selected="true"]{background:var(--paper);color:var(--ink);border-color:var(--ink);border-bottom:2px solid var(--paper)}
+nav.tabs button:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.panel{background:var(--paper);border:2px solid var(--ink);border-top:none;border-radius:0 0 var(--r) var(--r);padding:24px}
+.grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:28px;align-items:start}
+@media (max-width:880px){.grid{grid-template-columns:minmax(0,1fr)}.panel{padding:18px}}
+fieldset{border:none;margin:0 0 20px;padding:0;min-width:0}
+legend,.lbl{font-family:var(--display);font-stretch:90%;font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;padding:0;display:block}
+.hint{font-size:13px;color:var(--muted);margin:6px 0 0}
+.modules{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+.mod{position:relative}
+.mod input{position:absolute;opacity:0;pointer-events:none}
+.mod label{display:flex;gap:10px;align-items:flex-start;border:1.5px solid var(--line);border-radius:8px;padding:10px 12px;cursor:pointer;height:100%;background:var(--paper)}
+.mod .key{font-family:var(--display);font-weight:800;font-size:18px;line-height:1;width:28px;height:28px;border-radius:6px;display:grid;place-items:center;background:var(--bg);flex:none}
+.mod .t{font-weight:600;font-size:14px;line-height:1.25}
+.mod .s{display:block;font-size:12px;color:var(--muted);font-weight:400;margin-top:2px}
+.mod input:checked+label{border-color:var(--accent);background:var(--accent-soft)}
+.mod input:checked+label .key{background:var(--accent);color:var(--accent-ink)}
+.mod input:focus-visible+label{outline:3px solid var(--accent);outline-offset:2px}
+.row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 14px}
+@media (max-width:520px){.row{grid-template-columns:minmax(0,1fr)}}
+.field label{display:block;font-size:13px;font-weight:600;margin-bottom:4px}
+input[type=text],input[type=number],select,textarea{width:100%;font:inherit;font-size:15px;color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:7px;padding:9px 11px}
+textarea{resize:vertical;min-height:72px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:inherit;font-size:13px;border:1.5px solid var(--line);background:var(--paper);color:var(--ink);border-radius:999px;padding:5px 11px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.chip[aria-pressed="true"]{background:var(--mark-soft);border-color:var(--mark);font-weight:600}
+.chip[aria-pressed="true"]::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--warn)}
+.addrow{display:flex;gap:8px;margin-top:8px}
+.addrow input{flex:1;min-width:0}
+.checks{display:grid;gap:6px}
+.checks label{display:flex;gap:9px;align-items:flex-start;font-size:14px;cursor:pointer}
+.checks input{margin-top:3px;accent-color:var(--accent)}
+.btn{font-family:var(--display);font-stretch:90%;font-weight:700;font-size:15px;border-radius:8px;padding:10px 16px;cursor:pointer;border:2px solid var(--ink);background:var(--paper);color:var(--ink);text-decoration:none;display:inline-flex;align-items:center;gap:8px;line-height:1.1}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.small{font-size:13px;padding:6px 11px}
+.btn:hover{filter:brightness(1.06)}
+.slip{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);border:2px solid var(--ink);border-radius:var(--r);background:var(--bg);overflow:hidden;min-width:0}
+.slip-head{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1.5px dashed var(--line);background:var(--paper)}
+.slip-head h2{font-family:var(--display);font-stretch:85%;font-size:17px;margin:0}
+.meta{font-family:var(--mono);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.toggle{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;cursor:pointer}
+.toggle input{accent-color:var(--accent);width:16px;height:16px}
+pre.out{margin:0;padding:14px;font-family:var(--mono);font-size:12.5px;line-height:1.55;white-space:pre-wrap;word-break:break-word;max-height:58vh;overflow:auto;color:var(--ink)}
+.slip-foot{display:flex;flex-wrap:wrap;gap:8px;padding:12px 14px;border-top:1.5px dashed var(--line);background:var(--paper)}
+.toast{font-size:13px;font-weight:600;color:var(--ok);align-self:center}
+.note{border-left:4px solid var(--mark);background:var(--mark-soft);padding:10px 12px;border-radius:0 7px 7px 0;font-size:14px;margin:0 0 18px}
+.note.blue{border-color:var(--accent);background:var(--accent-soft)}
+.steps{list-style:none;margin:0 0 22px;padding:0;display:grid;gap:12px;counter-reset:s}
+.steps li{display:grid;grid-template-columns:36px minmax(0,1fr);gap:12px;align-items:start;counter-increment:s}
+.steps li::before{content:counter(s);font-family:var(--display);font-weight:800;font-size:18px;width:32px;height:32px;border:2px solid var(--ink);border-radius:50%;display:grid;place-items:center}
+.steps b{display:block}
+h3{font-family:var(--display);font-stretch:85%;font-size:20px;margin:0 0 10px}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
+@media (max-width:880px){.two{grid-template-columns:minmax(0,1fr)}}
+.card{border:1.5px solid var(--line);border-radius:var(--r);background:var(--paper);min-width:0;display:flex;flex-direction:column}
+.card .ch{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 14px;border-bottom:1.5px dashed var(--line);flex-wrap:wrap}
+.card .ch strong{font-family:var(--display);font-stretch:88%;font-size:16px}
+.card pre{margin:0;padding:14px;font-family:var(--body);font-size:14px;white-space:pre-wrap;word-break:break-word;flex:1}
+.status{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin:0;padding:0;list-style:none}
+.status li{border:1.5px solid var(--line);border-radius:8px;padding:10px 12px;font-size:14px}
+.pill{display:inline-block;font-family:var(--mono);font-size:11.5px;font-weight:500;padding:2px 8px;border-radius:999px;margin-bottom:5px}
+.p-ok{background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--ok)}
+.p-mid{background:var(--accent-soft);color:var(--accent)}
+.p-warn{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+.p-no{background:var(--bg);color:var(--muted);border:1px solid var(--line)}
+.prose p,.prose li{max-width:70ch}
+.prose ul{padding-left:20px;margin:0 0 16px}
+.prose li{margin-bottom:6px}
+.sec{margin-bottom:28px}
+footer{margin-top:18px;font-size:12.5px;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Ausbildungs- und <span class="hl">Praktikumsfinder</span></h1>
+      <p class="lede">Suchauftrag zusammenstellen, kopieren und im kostenlosen Claude-Chat mit Websuche ausführen. Für Jobcoaches und Übergangslotsen in Hamm, im Ennepe-Ruhr-Kreis und in NRW.</p>
+    </div>
+    <div style="display:grid;gap:4px;justify-items:end"><div class="stamp" id="stamp">Stand: –</div><span class="offline" id="offline" hidden>Offline: Aufträge erstellen geht trotzdem</span></div>
+  </header>
+
+  <div class="installbar" id="installBar" hidden>
+    <span id="installText">Als App auf dem Startbildschirm ablegen. Dann öffnet sie sich ohne Browserleiste und funktioniert auch offline.</span>
+    <button class="btn small primary" id="installBtn" type="button" hidden>App installieren</button>
+    <button class="x" id="installClose" type="button" aria-label="Hinweis schließen">×</button>
+  </div>
+  <nav class="tabs" role="tablist" aria-label="Bereiche">
+    <button role="tab" id="t-auftrag" aria-controls="p-auftrag" aria-selected="true">1 · Suchauftrag</button>
+    <button role="tab" id="t-projekt" aria-controls="p-projekt" aria-selected="false">2 · Claude-Projekt</button>
+    <button role="tab" id="t-kontakt" aria-controls="p-kontakt" aria-selected="false">3 · Kontaktvorlagen</button>
+    <button role="tab" id="t-hinweise" aria-controls="p-hinweise" aria-selected="false">4 · Hinweise</button>
+  </nav>
+
+  <!-- TAB 1 -->
+  <section class="panel" id="p-auftrag" role="tabpanel" aria-labelledby="t-auftrag">
+    <div class="grid">
+      <form id="form" autocomplete="off">
+        <fieldset>
+          <legend>Recherchemodul</legend>
+          <div class="modules" id="modules"></div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Suchgebiet</legend>
+          <div class="row">
+            <div class="field"><label for="region">Region / Ausgangsort</label><input type="text" id="region"></div>
+            <div class="field"><label for="radius">Suchradius</label>
+              <select id="radius">
+                <option value="">Standard des Moduls</option>
+                <option>5 km</option><option>10 km</option><option>15 km</option><option>25 km</option><option>40 km</option>
+                <option value="nur der genannte Ort">nur der genannte Ort</option>
+              </select></div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend id="berufe-legend">Berufe</legend>
+          <div class="chips" id="chips" aria-labelledby="berufe-legend"></div>
+          <div class="addrow">
+            <input type="text" id="addBeruf" placeholder="Weiteren Beruf oder Berufsfeld eingeben" aria-label="Weiteren Beruf hinzufügen">
+            <button type="button" class="btn small" id="addBtn">Hinzufügen</button>
+          </div>
+          <p class="hint" id="berufeHint"></p>
+        </fieldset>
+
+        <fieldset>
+          <legend>Zeitraum und Zielgruppe</legend>
+          <div class="row">
+            <div class="field" id="beginWrap"><label for="beginn">Ausbildungsbeginn</label>
+              <select id="beginn">
+                <option>2026 (Restplätze / Nachvermittlung) und 2027</option>
+                <option>2026 (Restplätze / Nachvermittlung)</option>
+                <option>2027</option>
+                <option>2028</option>
+              </select></div>
+            <div class="field" id="zeitWrap"><label for="zeitraum">Praktikumszeitraum</label>
+              <input type="text" id="zeitraum" placeholder="z. B. 02.11.2026 bis 27.11.2026"></div>
+            <div class="field"><label for="ziel">Zielgruppe / Schulabschluss</label>
+              <select id="ziel">
+                <option value="">keine Einschränkung</option>
+                <option>Anlage A – Ausbildungsvorbereitung / erster bzw. erweiterter erster Schulabschluss</option>
+                <option>Anlage B – Ziel mittlerer Schulabschluss</option>
+                <option>Hauptschulabschluss</option>
+                <option>Mittlerer Schulabschluss (FOR)</option>
+                <option>Jugendliche mit Unterstützungsbedarf</option>
+              </select></div>
+            <div class="field"><label for="anzahl">Gewünschte Trefferzahl</label>
+              <input type="number" id="anzahl" min="1" max="60" placeholder="Standard (10 je Beruf)"></div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Ausgabe</legend>
+          <div class="row">
+            <div class="field"><label for="ausgabe">Form</label>
+              <select id="ausgabe">
+                <option>Ausführliche Tabelle im Chat</option>
+                <option>Kurze Übersicht im Chat</option>
+                <option>Tabelle im Chat und Excel-Datei</option>
+              </select></div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Zusatzwünsche</legend>
+          <div class="checks" id="extras"></div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Weitere Hinweise</legend>
+          <textarea id="frei" placeholder="z. B. Betrieb XY ausschließen, nur Betriebe mit Bushaltestelle in der Nähe …"></textarea>
+          <p class="hint">Bitte keine Namen, Adressen oder Gesundheitsdaten von Jugendlichen eintragen. Kürzel und anonyme Merkmale reichen.</p>
+          <p class="hint" id="privacyWarn" hidden style="color:var(--warn);font-weight:600">Das sieht nach einer E-Mail-Adresse, Telefonnummer oder einem Geburtsdatum aus. Bitte anonymisieren.</p>
+        </fieldset>
+      </form>
+
+      <aside class="slip" aria-label="Fertiger Suchauftrag">
+        <div class="slip-head">
+          <h2>Dein Suchauftrag</h2>
+          <label class="toggle"><input type="checkbox" id="projMode"> Kurzfassung für Claude-Projekt</label>
+        </div>
+        <pre class="out" id="out" tabindex="0"></pre>
+        <div class="slip-foot">
+          <button class="btn primary" id="copyBtn" type="button">Auftrag kopieren</button>
+          <a class="btn" href="https://claude.ai/new" target="_blank" rel="noopener">Claude öffnen ↗</a>
+          <span class="toast" id="toast" aria-live="polite"></span>
+          <span class="meta" id="count" style="margin-left:auto;align-self:center"></span>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- TAB 2 -->
+  <section class="panel" id="p-projekt" role="tabpanel" aria-labelledby="t-projekt" hidden>
+    <div class="two">
+      <div>
+        <h3>Einmal einrichten, danach nur noch Kurzaufträge</h3>
+        <p class="note blue">Mit einem Claude-Projekt liegen alle Regeln dauerhaft in den Projektanweisungen. Danach genügt im Projekt-Chat die Kurzfassung aus Reiter 1. Falls dein Konto keine Projekte anbietet, nimm einfach den vollständigen Auftrag. Der funktioniert in jedem Chat.</p>
+        <ol class="steps">
+          <li><div><b>claude.ai öffnen und anmelden</b>Ein kostenloses Konto reicht.</div></li>
+          <li><div><b>Neues Projekt anlegen</b>In der Seitenleiste „Projekte“ wählen, dann „Neues Projekt“. Name zum Beispiel: Ausbildungs- und Praktikumsfinder.</div></li>
+          <li><div><b>Projektanweisungen einfügen</b>Im Projekt „Anweisungen festlegen“ öffnen und den Text rechts komplett einfügen.</div></li>
+          <li><div><b>Websuche einschalten</b>Im Chatfenster über das Werkzeug-Symbol die Websuche aktivieren. Ohne Websuche liefert Claude keine geprüften Treffer.</div></li>
+          <li><div><b>Recherche starten</b>Im Projekt einen neuen Chat öffnen, in Reiter 1 „Kurzfassung für Claude-Projekt“ anhaken, Auftrag kopieren und einfügen.</div></li>
+        </ol>
+        <p class="hint">Projekte lassen sich im kostenlosen Plan nicht mit anderen teilen. Kolleginnen und Kollegen legen ihr eigenes Projekt an. Dafür reicht der Link zu dieser Seite.</p>
+      </div>
+      <div class="card">
+        <div class="ch"><strong>Projektanweisungen (alle Module)</strong>
+          <span style="display:flex;gap:8px;align-items:center"><span class="meta" id="projCount"></span><button class="btn small primary" id="copyProj" type="button">Kopieren</button></span></div>
+        <pre class="out" id="projOut" tabindex="0" style="font-family:var(--mono);font-size:12px;max-height:70vh"></pre>
+        <div class="ch" style="border-bottom:none;border-top:1.5px dashed var(--line)"><span class="toast" id="toastProj" aria-live="polite"></span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 3 -->
+  <section class="panel" id="p-kontakt" role="tabpanel" aria-labelledby="t-kontakt" hidden>
+    <div class="grid">
+      <form id="kform" autocomplete="off">
+        <fieldset>
+          <legend>Angaben für die Vorlagen</legend>
+          <div class="row">
+            <div class="field"><label for="kName">Dein Name</label><input type="text" id="kName" placeholder="Vorname Nachname"></div>
+            <div class="field"><label for="kBetrieb">Betrieb</label><input type="text" id="kBetrieb" placeholder="z. B. Autohaus Muster GmbH"></div>
+            <div class="field"><label for="kArt">Anliegen</label>
+              <select id="kArt"><option>Schülerpraktikum</option><option>Ausbildungsplatz</option><option>Praktikum mit Ausbildungsperspektive</option><option>Einstiegsqualifizierung (EQ)</option></select></div>
+            <div class="field"><label for="kBeruf">Beruf / Berufsfeld</label><input type="text" id="kBeruf" placeholder="z. B. Kfz-Mechatroniker/in"></div>
+            <div class="field"><label for="kOrt">Region</label><input type="text" id="kOrt" value="Hamm"></div>
+            <div class="field"><label for="kZeit">Zeitraum / Beginn</label><input type="text" id="kZeit" value="nach Absprache"></div>
+            <div class="field"><label for="kProg">Programm / Träger</label><input type="text" id="kProg" value="Ausbildungswege NRW, Kolping-Bildungszentren"></div>
+            <div class="field"><label for="kZiel">Zielgruppe</label>
+              <select id="kZiel"><option>Schülerinnen und Schüler an Berufskollegs (Anlage A und B)</option><option>Schülerinnen und Schüler aus der Ausbildungsvorbereitung</option><option>junge Erwachsene aus berufsvorbereitenden Maßnahmen</option></select></div>
+          </div>
+        </fieldset>
+      </form>
+      <div style="display:grid;gap:16px;min-width:0">
+        <div class="card">
+          <div class="ch"><strong>Telefonnotiz</strong><button class="btn small" type="button" data-copy="tel">Kopieren</button></div>
+          <pre id="tel"></pre>
+        </div>
+        <div class="card">
+          <div class="ch"><strong>E-Mail-Entwurf</strong><button class="btn small" type="button" data-copy="mail">Kopieren</button></div>
+          <pre id="mail"></pre>
+        </div>
+        <span class="toast" id="toastK" aria-live="polite"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 4 -->
+  <section class="panel prose" id="p-hinweise" role="tabpanel" aria-labelledby="t-hinweise" hidden>
+    <div class="sec">
+      <h3>So liest du die Ergebnisse</h3>
+      <ul class="status">
+        <li><span class="pill p-ok">aktuell bestätigt</span><br>Passendes Ausbildungsjahr oder Zeitraum, Bewerbung aktiv möglich.</li>
+        <li><span class="pill p-mid">wahrscheinlich aktuell</span><br>Seite erreichbar und Beginn passt, aber keine Frist erkennbar.</li>
+        <li><span class="pill p-warn">manuell prüfen</span><br>Keine Jahreszahl oder nur allgemeine Ausbildungsseite.</li>
+        <li><span class="pill p-no">nicht aktuell</span><br>Frist abgelaufen, besetzt oder nicht erreichbar. Steht nicht in der Hauptliste.</li>
+      </ul>
+    </div>
+    <div class="sec">
+      <h3>Praxis-Score bei Praktika (0–100)</h3>
+      <p>Passung zur Zielgruppe 30 · Erreichbarkeit 20 · Berufliche Relevanz 20 · Kontaktqualität 15 · Aktualität 15. Bei Ausbildungsstellen bewertet Claude stattdessen: sehr geeignet, geeignet, eingeschränkt geeignet oder eher anspruchsvoll.</p>
+    </div>
+    <div class="sec">
+      <h3>Was die kostenlose Version kann und was nicht</h3>
+      <ul>
+        <li>Die Recherche läuft im Chat. Die Websuche muss eingeschaltet sein, sonst kann Claude keine aktuellen Stellen prüfen.</li>
+        <li>Der kostenlose Plan hat ein Nachrichtenlimit. Suche lieber 1–3 Berufe pro Chat statt die ganze Kernliste auf einmal. Bei mehr Berufen arbeitet Claude Beruf für Beruf und fragt nach jedem Zwischenstand.</li>
+        <li>Kann Claude im Chat keine Excel-Datei erzeugen, kommen die Tabellenblätter als CSV-Text. Den kannst du in Excel über „Daten → Aus Text/CSV“ übernehmen.</li>
+        <li>Es gibt keine automatische tägliche Suche und kein Gedächtnis zwischen Chats. Für den Vortagsvergleich die letzte Excel-Datei in den Chat hochladen und Modul G wählen.</li>
+        <li>Stellen können sich zwischen Recherche und Kontakt ändern. Vor jeder Bewerbung die Originalseite noch einmal öffnen.</li>
+      </ul>
+    </div>
+    <div class="sec">
+      <h3>Datenschutz</h3>
+      <p>Keine Namen, Anschriften, Geburtsdaten, Gesundheits- oder Aufenthaltsdaten von Jugendlichen in den Chat geben. Für Matching reichen Kürzel und anonyme Kriterien: Berufswunsch, Schulabschluss, Wohnort-Stadtteil, Mobilität, Sprachstand. Die App speichert nichts auf einem Server. Deine Eingaben bleiben nur auf deinem Gerät.</p>
+    </div>
+  </section>
+
+  <footer>Grundlage: Masterprompt und Agentenanweisungen (Ausbildungs- und Praktikumsfinder Hamm und EN-Kreis), für Claude zusammengeführt.</footer>
+</div>
+
+<script>
+(function(){
+const today = new Date();
+const fmtDate = d => d.toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'});
+const isoDate = d => d.toISOString().slice(0,10);
+document.getElementById('stamp').textContent = 'Stand: ' + fmtDate(today);
+
+/* ---------- Regelwerk ---------- */
+const BASE = `# Ausbildungs- und Praktikumsfinder – Arbeitsanweisung
+
+## Rolle
+Du bist der Ausbildungs- und Praktikumsfinder der Kolping Bildungszentren Westfalen und Ruhr. Du unterstützt Jobcoaches, Übergangslotsen und pädagogische Fachkräfte (u. a. im Landesprogramm Ausbildungswege NRW) bei der Recherche nach aktuellen Ausbildungsstellen, Praktikumsstellen, Einstiegsqualifizierungen (EQ), Schülerpraktika, Langzeitpraktika und Berufsorientierungsangeboten.
+Zielgruppe: Jugendliche und junge Erwachsene, vor allem Schülerinnen und Schüler an Berufskollegs aus Anlage A (Ausbildungsvorbereitung/AVS, erster und erweiterter erster Schulabschluss) und Anlage B (Ziel mittlerer Schulabschluss) sowie Teilnehmende berufsvorbereitender Maßnahmen.
+Schwerpunkte: Hamm und Umgebung, Ennepe-Ruhr-Kreis und Umgebung, ausgewählte Standorte in NRW. Anerkannte Ausbildungsberufe nach BBiG/HwO.
+
+## Verbindliche Regeln
+1. Nutze für jede Stellensuche die Websuche. Verlass dich nicht auf Vorwissen. Ist die Websuche nicht verfügbar, sag das sofort und bitte darum, sie einzuschalten, statt Treffer aus dem Gedächtnis zu liefern.
+2. Öffne die konkrete Stellenanzeige oder Karriereseite. Ein Suchtreffer-Ausschnitt reicht nicht als Bestätigung.
+3. Erfinde niemals Betriebe, Stellen, Ansprechpartner, E-Mail-Adressen, Telefonnummern, Fristen, Vergütungen, Anforderungen, Entfernungen oder Praktikumsmöglichkeiten.
+4. Fehlende Angaben: „nicht angegeben“ – erst nach gezielter Nachrecherche auf Karriereseite, Impressum und Kontaktseite. Nur Formular vorhanden: „Kontaktformular“. Unklare Sachverhalte: „unklar“. Schreibe bei unbelegten Daten nie „wahrscheinlich“.
+5. Kontaktdaten nur übernehmen, wenn sie dem Betrieb bzw. Standort eindeutig zuzuordnen sind. Direkte Ausbildungs- oder Recruiting-Kontakte vor allgemeiner Zentrale; eine Zentrale als solche kennzeichnen.
+6. Konkrete Datumsangaben verwenden (z. B. „10. Juli 2026“). Bei jedem Treffer Quelle (möglichst konkrete Anzeige, nicht nur Startseite), Quellenart und Abrufdatum nennen.
+7. Dubletten zusammenführen (gleiches Unternehmen, Standort, Beruf, Angebotsart, Beginn). Unternehmensseite als Hauptquelle, weitere Quellen in der Bemerkung. Betriebe mit mehreren Berufen, Standorten oder Angebotsarten getrennt aufführen.
+8. Listen nicht mit unpassenden oder veralteten Treffern auffüllen. Bei weniger Treffern die tatsächliche Anzahl nennen und kurz erläutern, welche Quellen und Suchvarianten geprüft wurden.
+9. Vermutungen nie als Tatsache darstellen. Unsichere Treffer als „Prüfung erforderlich“ kennzeichnen bzw. in die Rubrik „Prüfen / unsicher“.
+10. Den Suchradius nicht ohne Hinweis erweitern. Nutzerangaben haben Vorrang vor Standardwerten. Weise kurz darauf hin, wenn eine Vorgabe die Trefferzahl stark einschränkt.
+
+## Datenschutz
+Frage keine personenbezogenen Daten von Jugendlichen ab (vollständiger Name, Anschrift, Geburtsdatum, Gesundheitsdaten, Aufenthaltsstatus, Zeugnisse). Arbeite nur mit anonymisierten Kriterien (Beruf, Schulabschluss, Mobilität, Sprachstand, Führerschein, Praktikumserfahrung, gewünschter Beginn). Werden versehentlich personenbezogene Daten geschickt, weise darauf hin, sie zu entfernen. Gesundheitliche Einschränkungen nur berücksichtigen, wenn ausdrücklich freigegeben.
+
+## Quellen in dieser Reihenfolge
+1. Karriere- und Ausbildungsseiten, Stellenanzeigen und Bewerbungsportale der Unternehmen; öffentliche Arbeitgeber
+2. IHK, HWK, Kreishandwerkerschaften, Innungen, Landwirtschaftskammer (Lehrstellenbörsen, Lehrstellenradar, Praktikums-Navi NRW)
+3. Bundesagentur für Arbeit (Jobsuche), Ausbildung.NRW, kommunale Portale, Wirtschaftsförderungen, Lehrstellenbörsen, Berufsfelderkundungsportale
+4. Seriöse Börsen (Ausbildung.de, AUBI-plus, Azubiyo, StepStone, Indeed) nur ergänzend. Danach die Stelle auf der Originalseite bestätigen, sonst als „nur Börsenanzeige“ kennzeichnen.
+Nicht ausreichend als einzige Quelle: Suchtreffer ohne geöffnete Seite, Aggregatoren ohne Originalanzeige, Social-Media-Beiträge, PDF-Listen ohne Datum, Firmenverzeichnisse ohne Stellenbezug.
+
+## Aktualitätsstatus (je Treffer genau einer)
+- aktuell bestätigt: passendes Ausbildungsjahr/Zeitraum und aktive Bewerbungsmöglichkeit, oder Angebot eindeutig als offen dargestellt
+- wahrscheinlich aktuell: Seite erreichbar, passender Beginn, aber keine Frist erkennbar
+- manuell prüfen: keine Jahreszahl oder nur allgemeine Ausbildungsseite
+- nicht aktuell: Frist abgelaufen, vergangenes Jahr, besetzt oder nicht erreichbar – nicht in die Hauptliste, bei Bedarf separat als „ausgeschlossen“
+Betriebe, die grundsätzlich ausbilden, aber ohne bestätigte aktuelle Stelle: eigene Rubrik „Betriebe für eine mögliche Initiativanfrage“. Unterscheide klar: ausgeschriebene Stelle / allgemeines Ausbildungsangebot / Initiativbewerbung möglich / Praktikum nicht bestätigt. Unterscheide außerdem Ausbildungsplatz, Praktikum, Berufsfelderkundung, Ferienjob und Studiumspraktikum.
+
+## Region, Entfernung, Erreichbarkeit
+Prüfe die tatsächliche Lage jedes Betriebs. Entfernungen nur nachvollziehbar angeben und die Methode nennen (Luftlinie, ca. Straßenkilometer, ab Hbf/Stadtzentrum/PLZ). Ohne Ausgangsort: Hamm Hbf bzw. die genannte Stadt – Annahme kennzeichnen. Bewerte Erreichbarkeit aus Sicht Jugendlicher ohne Auto (ÖPNV, Arbeitsbeginn, Schichtzeiten, Lage außerhalb geschlossener Ortschaften). Gute ÖPNV-Anbindung nur behaupten, wenn geprüft, sonst „unklar“.
+
+## Anforderungen und Passung
+Nur Anforderungen übernehmen, die in der Quelle stehen; unterscheide zwingend, gewünscht, allgemein (Schulabschluss, Noten, Führerschein, Mindestalter, Sprache, Praktikum, Schichtbereitschaft …). Passung: Hohe / Mittlere / Bedingte Passung / Nicht passend. Keine abschließenden Urteile über Jugendliche – formuliere eine realistische Einschätzung aus Jobcoach-Sicht.
+
+## Trefferzahl
+Ohne Vorgabe: einzelner Beruf möglichst 10 aktuelle Treffer; regionale Übersicht möglichst 20; mehrere Berufe möglichst 10 je Beruf; sehr enges Gebiet: alle bestätigten Treffer. Qualität geht vor Menge. Reicht es nicht: Suchbegriffe und Berufsvarianten erweitern, Orte im erlaubten Radius, Kammern und regionale Portale prüfen – keine fachfremden Angebote ergänzen.
+
+## Ablauf
+- Übernimm alle Angaben aus dem Auftrag und frage Bekanntes nicht erneut ab. Ist der Auftrag konkret genug, beginne sofort mit der Recherche.
+- Fehlt Wesentliches, stelle eine kompakte Sammelfrage: „Bitte nenne mir kurz, ob du eine Ausbildung, ein Praktikum oder beides suchst, in welcher Region gesucht werden soll und welcher Beruf oder welches Berufsfeld gewünscht ist.“
+- Bei Unwesentlichem eine sinnvolle Annahme treffen und kennzeichnen. Keine Rückfragen nach jedem Zwischenschritt.
+- Bei mehr als 3 Berufen: arbeite Beruf für Beruf, gib nach jedem Beruf ein Zwischenergebnis aus und frage am Ende, ob du mit den restlichen Berufen fortfahren sollst.
+- Wähle das passende Modul selbst, ohne die Auswahl lange zu erklären.
+
+## Ausgabe
+1. Kurze Zusammenfassung: Suchauftrag, Region, Berufe, Suchdatum, Anzahl geprüfter Quellen, Anzahl bestätigter Treffer, verwendete Annahmen.
+2. Ergebnistabelle (Markdown). Standardspalten: Beruf | Angebotsart | Unternehmen | Ort | Beginn | Schulabschluss | Ansprechpartner | Kontakt | Bewerbungsweg | Aktualitätsstatus | Passung | Quelle | zuletzt geprüft. Ein Datensatz pro Zeile, stabile Spaltennamen, keine Kommentare in Zellen, für die es eigene Spalten gibt.
+3. Falls vorhanden: „Betriebe für eine mögliche Initiativanfrage“ und „Prüfen / unsicher“.
+4. Fachliche Einschätzung: häufig angebotene Berufe, Orte mit den meisten Treffern, ob eine Radiuserweiterung sinnvoll ist, ob Initiativanfragen aussichtsreich sind, welche Angebote zuerst kontaktiert werden sollten. Hinweis: Angebote können sich bis zur Kontaktaufnahme ändern – vor einer Bewerbung auf der Originalseite erneut prüfen.
+5. „Empfohlene nächste Schritte für den Jobcoach“ – höchstens 5 konkrete Aufgaben.
+
+## Matching (nur mit anonymisierten Profilen)
+Werden Profile mit Kürzel geliefert, ergänze eine Matching-Tabelle: Kürzel | Passender Betrieb | Beruf | Ort | ÖPNV-Erreichbarkeit | Eignung in % | Grund für die Empfehlung | Möglicher Hinderungsgrund | Nächster Schritt.
+
+## Excel
+Erstelle eine .xlsx-Datei, wenn Excel gewünscht ist, mehr als 15 Treffer vorliegen, mehrere Berufe recherchiert wurden oder eine Liste aktualisiert wird. Dateiname: Stellenfinder_Region_Beruf_JJJJ-MM-TT.xlsx. Kopfzeile fixiert, Filter aktiv, sinnvolle Spaltenbreiten, einheitliche Datumsformate, klickbare Links, ein Datensatz pro Zeile, keine verbundenen Zellen, keine Fantasiedaten.
+Tabellenblätter:
+- Aktuelle_Stellen: lfd. Nr. | Angebotsart | Ausbildungsberuf/Tätigkeitsbereich | Unternehmen | Straße | Hausnummer | PLZ | Ort | Region | Entfernung | Beginn | Dauer des Praktikums | Veröffentlichungsdatum | Bewerbungsfrist | Schulabschluss | weitere Anforderungen | Ansprechpartner | E-Mail | Telefonnummer | Bewerbungslink | Quellenlink | Quellenart | Aktualitätsstatus | Passung | zuletzt geprüft am | Bemerkungen
+- Betriebe (jeder Betrieb nur einmal): Unternehmen | Straße | Hausnummer | PLZ | Ort | Branche | Internetseite | zentrale Telefonnummer | zentrale E-Mail | Ansprechpartner Ausbildung | angebotene Ausbildungsberufe | Praktikum grundsätzlich möglich | letzter Kontakt | Bemerkungen
+- Bearbeitungsstatus: Unternehmen | Beruf | Ort | angerufen | Datum Anruf | Ansprechpartner erreicht | Bewerbung versendet | Datum Bewerbung | Praktikum angefragt | Datum Praktikumsanfrage | Rückmeldung Betrieb | Ergebnis | Wiedervorlage | zuständiger Jobcoach | Notizen. Auswahlwerte: offen, ja, nein, ausstehend, Rückruf vereinbart, Unterlagen angefordert, Bewerbung versendet, Vorstellungsgespräch, Praktikum vereinbart, Absage, Stelle besetzt, erfolgreich vermittelt.
+- Rechercheprotokoll: Recherchedatum | Suchart | Region | Suchradius | Beruf/Berufsfeld | gewünschter Beginn | geprüfte Quellen | Anzahl geprüfter Angebote | Anzahl bestätigter Treffer | ausgeschlossene Treffer | Ausschlussgründe | verwendete Annahmen | Hinweise zur Nachrecherche
+- Archiv (bei Bedarf): Beruf | Unternehmen | Ort | ursprüngliche Quelle | letztes bekanntes Ausbildungsjahr | Ausschlussgrund | geprüft am | Bemerkung
+Kannst du in diesem Chat keine Datei erzeugen, gib jedes Tabellenblatt als eigenen CSV-Codeblock aus (Trennzeichen Semikolon, erste Zeile = Spaltenüberschriften), damit es direkt in Excel übernommen werden kann.
+
+## Vortagsvergleich und Grenzen
+Du hast kein Gedächtnis zwischen Chats und überwachst nichts im Hintergrund. Für einen Vergleich mit einer früheren Recherche muss die letzte Excel-Datei hochgeladen werden; ohne sie vermerke: „Kein Vergleich möglich, da keine Vortagsdatei vorliegt.“ Angebote gelten als gleich, wenn Beruf, Betrieb, Ort und Link übereinstimmen. Behaupte nie, eine Suche später automatisch auszuführen.
+
+## Abschlussprüfung vor jeder Ausgabe
+Richtiger Suchraum? Gewünschte Berufe berücksichtigt? Treffer aktuell und Originalquelle geöffnet? Dubletten entfernt? Kontaktdaten belegt und Lücken als „nicht angegeben“ markiert? Unbestätigte Praktika gekennzeichnet? Veraltete Treffer ausgeschlossen? Quelle und Prüfdatum bei jedem Treffer? Keine personenbezogenen Daten von Jugendlichen?
+
+## Stil
+Professionell, klar, wertschätzend, lösungsorientiert, ohne Floskeln und lange Vorreden. Für Jobcoaches sachlich und präzise; Texte für Jugendliche in einfacher Sprache.`;
+
+const CORE10 = ['Medizinische/r Fachangestellte/r','Friseur/in','Elektroniker/in für Energie- und Gebäudetechnik','Anlagenmechaniker/in SHK','Kaufmann/-frau im Einzelhandel','Verkäufer/in','Kaufmann/-frau für Büromanagement','Fachkraft für Lagerlogistik','Fachlagerist/in','Kfz-Mechatroniker/in'];
+const PRAKT = ['Verkäufer/in','Kaufmann/-frau im Einzelhandel','Fachlagerist/in','Fachkraft für Lagerlogistik','Industriemechaniker/in','Maschinen- und Anlagenführer/in','Elektroniker/in','Anlagenmechaniker/in SHK','Kfz-Mechatroniker/in','Medizinische/r Fachangestellte/r','Zahnmedizinische/r Fachangestellte/r','Pflegefachassistenz','Fachkraft Küche','Gärtner/in','Maler/in und Lackierer/in','Friseur/in','Metallbauer/in','Kaufmann/-frau für Büromanagement','Berufskraftfahrer/in','Bäcker/in','Fachverkäufer/in im Lebensmittelhandwerk','Gebäudereiniger/in'];
+const IT = ['Fachinformatiker/in Systemintegration','Fachinformatiker/in Anwendungsentwicklung','Fachinformatiker/in Daten- und Prozessanalyse','Fachinformatiker/in Digitale Vernetzung','IT-System-Elektroniker/in','Kaufmann/-frau für IT-System-Management','Kaufmann/-frau für Digitalisierungsmanagement','Kaufmann/-frau im E-Commerce','Mediengestalter/in Bild und Ton','Mediengestalter/in Digital und Print','Informationselektroniker/in'];
+const FELDER = ['Wirtschaft und Verwaltung','Handel und Verkauf','Lager und Logistik','Metall und Maschinenbau','Elektro','Bau','Holz','Gesundheit','Pflege','Soziales','Ernährung und Gastronomie','Körperpflege','IT','Medien','Fahrzeugtechnik','Gartenbau','Umwelt und Landwirtschaft'];
+
+const MODULES = {
+A:{t:'Ausbildung Hamm',s:'Hamm + 25 km, Kernliste',art:'Ausbildung',region:'Hamm (Stadtzentrum/Hbf)',radius:'25 km',list:CORE10,pre:['Kfz-Mechatroniker/in'],type:'aus',
+text:`## Modul A – Ausbildungsfinder Hamm
+Gebiet: Stadt Hamm und bis ca. 25 km um das Stadtzentrum (u. a. Bönen, Welver, Werl, Ahlen, Beckum, Drensteinfurt, Ascheberg, Bergkamen, Kamen, Werne, Unna, Lippetal). Die Radiusangabe im Auftrag hat Vorrang.
+Feste Kernliste (wenn der Auftrag keine Berufe nennt): Medizinische/r Fachangestellte/r; Friseur/in; Elektroniker/in für Energie- und Gebäudetechnik; Anlagenmechaniker/in SHK; Kaufmann/-frau im Einzelhandel; Verkäufer/in; Kaufmann/-frau für Büromanagement; Fachkraft für Lagerlogistik; Fachlagerist/in; Kfz-Mechatroniker/in. MFA, Friseur/in, Elektroniker/in und Anlagenmechaniker/in SHK sind feste Vermittlungsberufe und dürfen nicht durch Büro- oder Verwaltungsberufe verdrängt werden.
+Je Beruf alle passenden Angebote, bei großer Trefferlage bis zu 12.
+Sortierung je Beruf: 1. direkt in Hamm, 2. Entfernung zu Hamm-Zentrum, 3. passender Beginn, 4. Vollständigkeit der Kontaktdaten, 5. Aktualität, 6. Eignung für Jugendliche mit Unterstützungsbedarf.
+Je Angebot zusätzlich: Vermittlungseinschätzung (sehr geeignet / geeignet / eingeschränkt geeignet / eher anspruchsvoll) mit kurzer Begründung; Praktikum möglich?; EQ möglich?; Hauptschulabschluss realistisch?; Unterstützungsbedarf realistisch?
+Texttabelle je Beruf: Rang | Betrieb | Ort | Entfernung | Beginn | Bewerbungsweg | Kontakt | Einschätzung. Darunter kurz: Anforderungen, Praktikum/EQ, Hinweise für telefonisches Nachfassen. Nach jeder Tabelle eine kurze Vermittlungseinschätzung.
+Gesamtauswertung: Gesamtzahl; Anzahl direkt in Hamm; Anzahl im Umkreis; Top 5 Betriebe für schnelle Vermittlung; Top 5 für Jugendliche mit Hauptschulabschluss; Top 5 mit Praktikumsmöglichkeit; Angebote ohne direkte Kontaktdaten (Nachrecherche nötig); empfohlene telefonische Nachfassaktionen.
+Excel-Dateiname: Ausbildungsangebote_Hamm_25km_JJJJ-MM-TT.xlsx. Zusätzlich zu den Standardblättern: je Beruf ein Blatt und ein Blatt „Nachfassliste“ (Priorität | Ausbildungsberuf | Betrieb | Ort | Telefon | E-Mail | Grund für Nachfassen | Nächster Schritt | Wiedervorlage | Zuständig | Ergebnis), priorisiert nach: in Hamm, Eignung bei Hauptschulabschluss, Praktikumsmöglichkeit, fehlende Kontaktdaten, nahe Bewerbungsfrist.`},
+B:{t:'Praktikum Hamm',s:'Schülerpraktika, Praxis-Score',art:'Praktikum',region:'Hamm (Hbf)',radius:'15 km',list:PRAKT,pre:['Verkäufer/in','Fachlagerist/in'],type:'prak',
+text:`## Modul B – Praktikumsfinder Hamm
+Gebiet nach Priorität: 1) Hamm (Mitte, Westen, Norden, Osten, Süden, Bockum-Hövel, Heessen, Herringen, Pelkum, Rhynern, Uentrop, Werries, Berge, Westtünnen, Wiescherhöfen); 2) bis ca. 15 km: Bönen, Werne, Bergkamen, Kamen, Unna, Welver; 3) Ahlen, Beckum, Lippetal, Drensteinfurt, Ascheberg-Herbern; Lünen, Dortmund und Soest nur bei sehr guter ÖPNV-Anbindung oder besonders passenden Angeboten.
+Suche auch nach: Schülerpraktikum, Schnupperpraktikum, Berufsfelderkundung, Langzeitpraktikum, betriebliche Erprobung, Praktikum vor Ausbildung, Praktikum mit Übernahmeperspektive, „nach Absprache“, „laufend möglich“, „Praktikum auf Anfrage“, „Praktikum für Berufskolleg“. Prüfe auch Ausbildungs- und Karriereseiten auf ausdrücklich angebotene Initiativpraktika.
+Zusätzliche Quellen: HWK Dortmund Lehrstellen- und Praktikumsbörse, Lehrstellenradar, IHK zu Dortmund, IHK Nord Westfalen, Kreishandwerkerschaft Hellweg-Lippe, Praktikums-Navi NRW, Karriereportal der Stadt Hamm, Stadtwerke Hamm, Kliniken und Pflegeeinrichtungen in Hamm.
+Kennzeichne jeden Treffer: konkret ausgeschriebenes Praktikum / allgemeine Praktikumsmöglichkeit / Initiativbewerbung möglich / Praktikum nicht bestätigt. Betriebe ohne Beleg nie als gesicherte Praktikumsstelle darstellen.
+Nicht in die Hauptliste (höchstens „Prüfen / unsicher“): kein echtes Praktikum, nur für Studierende, Ferienjob, schlecht erreichbar, keine belastbare Quelle, unseriös, Link nicht erreichbar, nur für Volljährige.
+Praxis-Score 0–100 mit kurzer Begründung: Passung zur Zielgruppe 30, Erreichbarkeit 20, berufliche Relevanz 20, Kontaktqualität 15, Aktualität/Verfügbarkeit 15. Prüfe immer: für Minderjährige geeignet? Für Anlage A / Anlage B geeignet?
+Ausgabe: Titel „Praktikumsfinder Hamm – Recherche vom [Datum]“; Kurzfazit für den Jobcoach (5–8 Sätze); Top-Empfehlungen (Rang | Praxis-Score | Betrieb | Ort | Entfernung/Erreichbarkeit ab Hamm | Berufsfeld/Beruf | Praktikumsart | Anlage A/B | Zeitraum | Ansprechpartner | Telefon | E-Mail | Bewerbungsweg | Quelle/Link | Bemerkung); Gesamtliste; Gliederung nach Berufsfeld und nach Ort; Kontaktliste; höchstens 5 nächste Schritte.`},
+C:{t:'Ausbildung EN-Kreis',s:'9 Städte + 15 km Umfeld',art:'Ausbildung',region:'Ennepe-Ruhr-Kreis',radius:'',list:CORE10,pre:['Anlagenmechaniker/in SHK'],type:'aus',
+text:`## Modul C – Ausbildungsfinder Ennepe-Ruhr-Kreis
+Gebiet: Breckerfeld, Ennepetal, Gevelsberg, Hattingen, Herdecke, Schwelm, Sprockhövel, Wetter, Witten. Auf Wunsch angrenzende Orte bis ca. 15 km von der Kreisgrenze (z. B. Hagen, Bochum, Essen, Velbert, Wuppertal, Dortmund, Remscheid, Radevormwald, Schalksmühle) – Lage jedes Betriebs prüfen und nicht pauschal alle Angebote einer Großstadt aufnehmen. Nichts außerhalb dieses Gebiets aufnehmen.
+Kernliste wie Modul A; MFA, Friseur/in, Elektroniker/in für Energie- und Gebäudetechnik und Anlagenmechaniker/in SHK besonders stark gewichten. Liefert ein Kernberuf kaum Treffer, verwandte Berufe nur ergänzend heranziehen. Pflegeberufe nur auf ausdrücklichen Wunsch. Ähnliche kaufmännische Berufe dürfen nicht dominieren.
+Kontaktdaten besonders gründlich nachrecherchieren (Impressum, Kontakt-, Karriere-, Standortseiten). Ansprechpersonen nur, wenn namentlich oder eindeutig funktionsbezogen (Ausbildung, Personal, Recruiting, Praxismanagement, Filialleitung) belegt. Fehlt etwas trotz Nachrecherche: benennen, was fehlt und welche Quelle geprüft wurde.
+Bewertung, Sortierung und Ausgabe wie Modul A; Bezugspunkt für Entfernungen ist die genannte Stadt. Excel-Dateiname: Ausbildungsfinder_EN_Kreis_JJJJ-MM-TT.xlsx.`},
+D:{t:'Praktikum EN-Kreis',s:'Regionale Praktikumsportale',art:'Praktikum',region:'Ennepe-Ruhr-Kreis',radius:'',list:PRAKT,pre:['Kaufmann/-frau für Büromanagement'],type:'prak',
+text:`## Modul D – Praktikumsfinder Ennepe-Ruhr-Kreis
+Gebiet: Witten, Hattingen, Sprockhövel, Wetter, Herdecke, Gevelsberg, Ennepetal, Schwelm, Breckerfeld; zusätzlich mit ÖPNV gut erreichbar: Hagen, Bochum, Dortmund, Wuppertal, Essen, Velbert, Wülfrath, Radevormwald, Halver.
+Zusätzliche Quellen: Praktikumsportal Ennepe-Ruhr-Kreis & Stadt Hagen, Berufsfelderkundungsportal EN & Hagen, Ausbildung.NRW, SIHK zu Hagen, IHK Mittleres Ruhrgebiet, HWK Dortmund Lehrstellen- und Praktikumsbörse, Praktikums-Navi, Kreishandwerkerschaft Ruhr, Kreishandwerkerschaft Dortmund Hagen Lünen, Innungen, Wirtschaftsförderung.
+Ist keine Praktikumsdauer genannt, allgemein suchen und darauf hinweisen, dass Zeitraum und Umfang direkt mit dem Betrieb abzustimmen sind.
+Kennzeichnung, Ausschlusskriterien, Praxis-Score und Ausgabe wie Modul B (Titel „Praktikumsfinder EN-Kreis – Recherche vom [Datum]“).
+Modul B zur Referenz – Kennzeichnung: konkret ausgeschriebenes Praktikum / allgemeine Praktikumsmöglichkeit / Initiativbewerbung möglich / Praktikum nicht bestätigt. Praxis-Score 0–100: Zielgruppe 30, Erreichbarkeit 20, berufliche Relevanz 20, Kontaktqualität 15, Aktualität 15. Nicht in die Hauptliste: kein echtes Praktikum, nur Studierende, Ferienjob, schlecht erreichbar, keine belastbare Quelle, unseriös, nur Volljährige.`},
+E:{t:'Praktikum individuell EN',s:'1 Beruf, ≥ 10 Betriebe',art:'Praktikum',region:'Ennepe-Ruhr-Kreis und angrenzende Städte',radius:'',list:PRAKT,pre:['Medizinische/r Fachangestellte/r'],type:'prak',
+text:`## Modul E – Praktikum individuell EN-Kreis
+Gezielte Praktikumssuche für einen oder mehrere Berufe im Ennepe-Ruhr-Kreis und angrenzenden, mit ÖPNV erreichbaren Städten (Gebiet und Quellen wie Modul D).
+1. Beruf normalisieren nach BBiG/HwO (BIBB-Verzeichnis): MFA → Medizinische/r Fachangestellte/r; ZFA → Zahnmedizinische/r Fachangestellte/r; Kfz → Kraftfahrzeugmechatroniker/in; Lager → Fachlagerist/in oder Fachkraft für Lagerlogistik; Büro → Kaufmann/-frau für Büromanagement, ggf. Industriekaufmann/-frau, Kaufmann/-frau für Groß- und Außenhandelsmanagement, Verwaltungsfachangestellte/r; Verkauf → Verkäufer/in oder Kaufmann/-frau im Einzelhandel; IT → Fachinformatiker/in mit Fachrichtung. Zuordnung kurz anzeigen, dann alle plausiblen Berufe recherchieren statt nachzufragen.
+2. Je Beruf möglichst mindestens 10 belastbare Betriebe. Bei weniger: Anzahl offen nennen und weitere Recherche oder Direktansprache empfehlen.
+3. Eigene Ergebnisliste je Beruf mit Praxis-Score (Zielgruppe 30, Erreichbarkeit 20, Relevanz 20, Kontakt 15, Aktualität 15) und Kennzeichnung der Praktikumsart.
+4. Titel: „Praktikum individuell EN-Kreis – Recherche vom [Datum]“. Am Ende Telefonnotiz und versandfertigen E-Mail-Entwurf für die besten Betriebe, mit Hinweis, dass die Excel-Tabelle als Anhang beigefügt werden soll. Keine E-Mails selbst versenden.`},
+F:{t:'IT & Medien NRW',s:'Hamm, Dortmund, Münster',art:'Ausbildung und Praktikum',region:'Hamm, Dortmund (Innenstadt, Hbf, Hörde), Münster (Hbf)',radius:'',list:IT,pre:['Fachinformatiker/in Systemintegration'],type:'aus',
+text:`## Modul F – IT- und Medienfinder NRW
+Orte: Hamm; Dortmund, vor allem Innenstadt, Hauptbahnhof und Hörde; Münster, vor allem gut erreichbare Standorte rund um den Hauptbahnhof; weitere genannte Orte in NRW.
+Berufe: Fachinformatiker/in (Systemintegration, Anwendungsentwicklung, Daten- und Prozessanalyse, Digitale Vernetzung); IT-System-Elektroniker/in; Kaufmann/-frau für IT-System-Management; Kaufmann/-frau für Digitalisierungsmanagement; Kaufmann/-frau im E-Commerce; Mediengestalter/in Bild und Ton; Mediengestalter/in Digital und Print; Informationselektroniker/in.
+Bevorzuge Betriebe, die den mittleren Schulabschluss akzeptieren, Quereinsteiger oder Studienabbrecher ansprechen, Praktika anbieten, nicht ausschließlich sehr gute Noten voraussetzen und dauerhaft ausbilden.`},
+G:{t:'Liste prüfen',s:'Excel-Datei aktualisieren',art:'Prüfung einer bestehenden Liste',region:'laut hochgeladener Liste',radius:'',list:[],pre:[],type:'list',
+text:`## Modul G – Bestehende Betriebs- oder Excel-Liste prüfen
+Die Datei ist im Chat hochgeladen. Vorgehen: Spalten analysieren; bestehende Statusangaben und manuelle Einträge erhalten und ohne ausdrücklichen Auftrag nicht ändern; jeden Betrieb möglichst auf seiner eigenen Karriere- oder Unternehmensseite prüfen (aktuelle Ausbildungsstellen, aktuelle Praktikumsangebote, gültige Ansprechpartner und Kontaktdaten, veraltete oder nicht erreichbare Angebote).
+Spalten ergänzen: „Zuletzt geprüft am“ und „Prüfergebnis“ mit einem dieser Werte: aktuell bestätigt / weiterhin auf Karriereseite veröffentlicht / nur allgemeine Ausbildungsseite gefunden / Angebot abgelaufen / Angebot nicht mehr erreichbar / keine aktuelle Stelle gefunden / Betrieb nicht eindeutig identifizierbar / manuelle Prüfung erforderlich.
+Nichts automatisch archivieren. Wesentliche Änderungen dokumentieren. Ist eine frühere Ergebnisdatei hochgeladen, zusätzlich neue und weggefallene Angebote ausweisen. Bei langen Listen in Abschnitten arbeiten und den Fortschritt nennen.`},
+H:{t:'Berufsfeldsuche',s:'Ohne festen Beruf',art:'Ausbildung',region:'Hamm',radius:'',list:FELDER,pre:['Handel und Verkauf','Lager und Logistik'],type:'feld',
+text:`## Modul H – Vollständige Berufsfeldsuche
+Ohne festgelegten Beruf nach Berufsfeldern ordnen: Wirtschaft und Verwaltung, Handel und Verkauf, Lager und Logistik, Metall und Maschinenbau, Elektro, Bau, Holz, Gesundheit, Pflege, Soziales, Ernährung und Gastronomie, Körperpflege, IT, Medien, Fahrzeugtechnik, Gartenbau, Umwelt und Landwirtschaft. Jedem Feld passende anerkannte Ausbildungsberufe zuordnen und kurz anzeigen. Ergebnis nach Berufsfeld und Beruf gliedern. Wird „alle Berufe“ verlangt, ohne Rückfrage suchen.`}
+};
+
+const EXTRAS = [
+ ['orig','Nur Originalquellen (Unternehmensseiten) als bestätigt werten'],
+ ['mail','Nur Angebote mit direkter E-Mail-Bewerbung'],
+ ['oepnv','ÖPNV-Erreichbarkeit für Jugendliche ohne Auto besonders prüfen'],
+ ['init','Betriebe für Initiativanfragen mit aufführen'],
+ ['eq','Auf Praktikum und Einstiegsqualifizierung (EQ) achten'],
+ ['kontakt','Telefonnotiz und E-Mail-Entwurf für die Top-3 mitliefern']
+];
+const EXTRA_TXT = {
+ orig:'Werte nur Angebote als bestätigt, die auf der Unternehmensseite selbst stehen.',
+ mail:'Nimm nur Angebote auf, bei denen eine direkte Bewerbung per E-Mail möglich ist.',
+ oepnv:'Prüfe die ÖPNV-Erreichbarkeit für Jugendliche ohne Auto und nenne sie je Treffer.',
+ init:'Führe zusätzlich Betriebe für eine mögliche Initiativanfrage auf.',
+ eq:'Achte besonders auf Hinweise zu Praktikum vor Ausbildung und Einstiegsqualifizierung (EQ).',
+ kontakt:'Erstelle am Ende für die drei besten Betriebe eine kurze Telefonnotiz und einen E-Mail-Entwurf.'
+};
+
+/* ---------- State ---------- */
+const $ = id => document.getElementById(id);
+let state = {mod:'A', sel:{}, custom:{}};
+function load(){ try{ const s = JSON.parse(localStorage.getItem('apf-state')||'null'); if(s && MODULES[s.mod]) state = Object.assign(state,s);}catch(e){} }
+function save(){ try{ localStorage.setItem('apf-state', JSON.stringify(state)); }catch(e){} }
+load();
+
+const modWrap = $('modules');
+Object.entries(MODULES).forEach(([k,m])=>{
+  const d = document.createElement('div'); d.className='mod';
+  d.innerHTML = `<input type="radio" name="mod" id="mod-${k}" value="${k}"><label for="mod-${k}"><span class="key">${k}</span><span class="t">${m.t}<span class="s">${m.s}</span></span></label>`;
+  modWrap.appendChild(d);
+});
+const exWrap = $('extras');
+EXTRAS.forEach(([k,l])=>{
+  const lab = document.createElement('label');
+  lab.innerHTML = `<input type="checkbox" id="ex-${k}"> <span>${l}</span>`;
+  exWrap.appendChild(lab);
+});
+
+function selFor(k){
+  if(!state.sel[k]) state.sel[k] = MODULES[k].pre.slice();
+  if(!state.custom[k]) state.custom[k] = [];
+  return state.sel[k];
+}
+function renderChips(){
+  const k = state.mod, m = MODULES[k], sel = selFor(k);
+  const chips = $('chips'); chips.innerHTML='';
+  const all = m.list.concat(state.custom[k].filter(x=>!m.list.includes(x)));
+  all.forEach(b=>{
+    const c = document.createElement('button'); c.type='button'; c.className='chip';
+    c.textContent = b; c.setAttribute('aria-pressed', sel.includes(b)?'true':'false');
+    c.onclick = ()=>{ const i = sel.indexOf(b); if(i>=0) sel.splice(i,1); else sel.push(b); renderChips(); build(); save(); };
+    chips.appendChild(c);
+  });
+  const leg = $('berufe-legend');
+  leg.textContent = m.type==='feld' ? 'Berufsfelder' : 'Berufe';
+  $('berufeHint').textContent =
+    m.type==='list' ? 'Für dieses Modul keine Auswahl nötig. Lade deine Excel-Liste im Claude-Chat zusammen mit dem Auftrag hoch.' :
+    sel.length===0 ? (m.list===CORE10 ? 'Keine Auswahl: Claude nimmt die feste Kernliste mit 10 Berufen (im kostenlosen Plan besser 1–3 Berufe wählen).' : 'Keine Auswahl: Claude fragt nach oder sucht breit.') :
+    sel.length>3 ? sel.length+' ausgewählt. Claude arbeitet Beruf für Beruf und fragt zwischendurch nach.' :
+    sel.length+' ausgewählt.';
+}
+function applyModule(k, fromUser){
+  state.mod = k; const m = MODULES[k];
+  $('mod-'+k).checked = true;
+  if(fromUser || !$('region').value) $('region').value = m.region;
+  if(fromUser) $('radius').value = '';
+  $('beginWrap').hidden = (m.type==='prak' || m.type==='list');
+  $('zeitWrap').hidden = !(m.type==='prak' || k==='F');
+  renderChips(); build(); save();
+}
+modWrap.addEventListener('change', e=>{ if(e.target.name==='mod') applyModule(e.target.value, true); });
+function addCustom(){
+  const v = $('addBeruf').value.trim(); if(!v) return;
+  const k = state.mod; selFor(k);
+  if(!state.custom[k].includes(v) && !MODULES[k].list.includes(v)) state.custom[k].push(v);
+  if(!state.sel[k].includes(v)) state.sel[k].push(v);
+  $('addBeruf').value=''; renderChips(); build(); save();
+}
+$('addBtn').onclick = addCustom;
+$('addBeruf').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); addCustom(); }});
+$('form').addEventListener('submit', e=>e.preventDefault());
+$('form').addEventListener('input', build);
+$('form').addEventListener('change', build);
+$('projMode').addEventListener('change', build);
+
+/* ---------- Auftrag bauen ---------- */
+function auftrag(){
+  const k = state.mod, m = MODULES[k], sel = selFor(k);
+  const L = [];
+  L.push(`# Suchauftrag vom ${fmtDate(today)}`);
+  L.push(`Modul: ${k} – ${m.t}`);
+  L.push(`Suchart: ${m.art}`);
+  if(m.type!=='list'){
+    L.push(`Region / Ausgangsort: ${$('region').value.trim() || m.region}`);
+    L.push(`Suchradius: ${$('radius').value || (m.radius ? m.radius+' (Standard)' : 'Standard des Moduls')}`);
+    const lbl = m.type==='feld' ? 'Berufsfelder' : 'Berufe';
+    L.push(`${lbl}: ${sel.length ? sel.join('; ') : (m.list===CORE10 ? 'feste Kernliste des Moduls' : 'bitte passend auswählen bzw. breit suchen')}`);
+    if(!$('beginWrap').hidden) L.push(`Ausbildungsbeginn: ${$('beginn').value}`);
+    if(!$('zeitWrap').hidden) L.push(`Praktikumszeitraum: ${$('zeitraum').value.trim() || 'nach Absprache / laufend möglich'}`);
+  } else {
+    L.push('Datei: Die zu prüfende Liste ist diesem Chat als Anhang beigefügt.');
+  }
+  if($('ziel').value) L.push(`Zielgruppe / Schulabschluss: ${$('ziel').value}`);
+  if($('anzahl').value) L.push(`Gewünschte Trefferzahl: ${$('anzahl').value}${sel.length>1?' je Beruf':''}`);
+  L.push(`Ausgabe: ${$('ausgabe').value}`);
+  const ex = EXTRAS.filter(([key])=>$('ex-'+key).checked).map(([key])=>'- '+EXTRA_TXT[key]);
+  if(ex.length){ L.push('Zusatzwünsche:'); L.push(...ex); }
+  const f = $('frei').value.trim(); if(f) L.push('Weitere Hinweise: '+f);
+  L.push('');
+  L.push('Starte direkt mit der Recherche (Websuche). Halte dich an alle Regeln der Arbeitsanweisung.');
+  return L.join('\n');
+}
+function build(){
+  const k = state.mod;
+  const txt = $('projMode').checked ? auftrag() : BASE + '\n\n' + MODULES[k].text + '\n\n---\n\n' + auftrag();
+  $('out').textContent = txt;
+  $('count').textContent = txt.length.toLocaleString('de-DE') + ' Zeichen';
+  const f = $('frei').value;
+  $('privacyWarn').hidden = !(/[\w.+-]+@[\w-]+\.[\w.]+/.test(f) || /(\+?\d[\d\s/-]{7,}\d)/.test(f) || /\b\d{1,2}\.\d{1,2}\.(19|20)\d{2}\b/.test(f) && /geb/i.test(f));
+}
+
+/* ---------- Kopieren ---------- */
+function copyText(text, el, toastEl){
+  const done = ()=>{ toastEl.textContent='Kopiert'; setTimeout(()=>toastEl.textContent='',2200); };
+  const fallback = ()=>{ const r = document.createRange(); r.selectNodeContents(el); const s = getSelection(); s.removeAllRanges(); s.addRange(r); toastEl.textContent='Text markiert – jetzt kopieren'; };
+  try{ navigator.clipboard.writeText(text).then(done, fallback); }catch(e){ fallback(); }
+}
+$('copyBtn').onclick = ()=>copyText($('out').textContent, $('out'), $('toast'));
+
+/* ---------- Projekt ---------- */
+const PROJ = BASE + '\n\n# Module\nWähle anhand des Auftrags das passende Modul.\n\n' + Object.values(MODULES).map(m=>m.text).join('\n\n');
+$('projOut').textContent = PROJ;
+$('projCount').textContent = PROJ.length.toLocaleString('de-DE') + ' Zeichen';
+$('copyProj').onclick = ()=>copyText(PROJ, $('projOut'), $('toastProj'));
+
+/* ---------- Tabs ---------- */
+const tabs = [...document.querySelectorAll('nav.tabs button')];
+function showTab(id){
+  tabs.forEach(t=>{ const on = t.id===id; t.setAttribute('aria-selected', on); $(t.getAttribute('aria-controls')).hidden = !on; });
+  try{ localStorage.setItem('apf-tab', id);}catch(e){}
+}
+tabs.forEach(t=>t.addEventListener('click', ()=>showTab(t.id)));
+const hashMap = {suchauftrag:'t-auftrag',projekt:'t-projekt',kontakt:'t-kontakt',hinweise:'t-hinweise'};
+let startTab = hashMap[location.hash.slice(1)];
+if(!startTab){ try{ startTab = localStorage.getItem('apf-tab'); }catch(e){} }
+if(startTab && $(startTab)) showTab(startTab);
+
+/* ---------- Kontaktvorlagen ---------- */
+function v(id, ph){ const x = $(id).value.trim(); return x || ph; }
+function buildK(){
+  const name = v('kName','[Name]'), betr = v('kBetrieb','Ihr Betrieb'), art = $('kArt').value, beruf = v('kBeruf','');
+  const ort = v('kOrt','[Region]'), zeit = v('kZeit','nach Absprache'), prog = v('kProg','[Programm / Träger]'), ziel = $('kZiel').value;
+  const berufTxt = beruf ? ` im Bereich ${beruf}` : '';
+  const progParts = prog.split(',').map(s=>s.trim());
+  const traeger = progParts[1] || progParts[0];
+  const programm = progParts[1] ? progParts[0] : '';
+  $('tel').textContent =
+`„Guten Tag, mein Name ist ${name}${traeger?' von den '+traeger.replace(/^den\s+/,''):''}. Ich unterstütze ${ziel} in ${ort} bei der Suche nach Praktikums- und Ausbildungsplätzen.
+
+Wir suchen aktuell${berufTxt} – Zeitraum: ${zeit}. Ich habe gesehen, dass ${betr==='Ihr Betrieb'?'Ihr Betrieb':betr} Praktika oder Ausbildungsplätze anbietet.
+
+Wäre bei Ihnen ein${art==='Ausbildungsplatz'?' Ausbildungsplatz':art==='Einstiegsqualifizierung (EQ)'?'e Einstiegsqualifizierung':' '+art} in diesem Zeitraum möglich? Wer wäre dafür die richtige Ansprechperson?“
+
+Notizen: Ansprechperson · Durchwahl · Voraussetzungen · Unterlagen · Wiedervorlage`;
+  $('mail').textContent =
+`Betreff: Anfrage ${art}${beruf?' – '+beruf:''}
+
+Sehr geehrte Damen und Herren,
+
+ich unterstütze${programm?' als Jobcoach im Programm '+programm:' als Jobcoach'} ${ziel} in ${ort} bei der Suche nach geeigneten Praktikums- und Ausbildungsplätzen.
+
+Aktuell suchen wir${art==='Ausbildungsplatz'?' einen Ausbildungsplatz':art==='Einstiegsqualifizierung (EQ)'?' einen Platz für eine Einstiegsqualifizierung':' einen Platz für ein '+art}${berufTxt}. Zeitraum: ${zeit}.
+
+Wir sind auf ${betr==='Ihr Betrieb'?'Ihr Unternehmen':betr} aufmerksam geworden, weil Sie Praktika oder Ausbildungsplätze anbieten. Könnten Sie sich vorstellen, einer Schülerin oder einem Schüler diese Chance zu geben?
+
+Gerne bespreche ich mit Ihnen telefonisch, welche Voraussetzungen erfüllt sein müssen und wer zu Ihrem Betrieb passen könnte.
+
+Mit freundlichen Grüßen
+${name}
+Jobcoach${programm?' '+programm:''}
+${traeger}`;
+}
+$('kform').addEventListener('input', buildK);
+$('kform').addEventListener('change', buildK);
+$('kform').addEventListener('submit', e=>e.preventDefault());
+document.querySelectorAll('[data-copy]').forEach(b=>b.addEventListener('click', ()=>{ const el = $(b.dataset.copy); copyText(el.textContent, el, $('toastK')); }));
+
+
+applyModule(state.mod, false);
+buildK();
+})();
+</script>
+<script>
+(function(){
+  if('serviceWorker' in navigator){ window.addEventListener('load',function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); }); }
+  var bar=document.getElementById('installBar'), btn=document.getElementById('installBtn'), txt=document.getElementById('installText');
+  var standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  var dismissed=false; try{dismissed=localStorage.getItem('apf-install-x')==='1'}catch(e){}
+  var deferred=null;
+  window.addEventListener('beforeinstallprompt',function(e){ e.preventDefault(); deferred=e; if(!standalone&&!dismissed){ bar.hidden=false; btn.hidden=false; } });
+  btn.addEventListener('click',function(){ if(!deferred) return; deferred.prompt(); deferred.userChoice.finally(function(){ deferred=null; bar.hidden=true; }); });
+  var ios=/iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  if(ios && !standalone && !dismissed){ txt.textContent='Als App installieren: in Safari auf „Teilen“ tippen, dann „Zum Home-Bildschirm“.'; bar.hidden=false; }
+  document.getElementById('installClose').addEventListener('click',function(){ bar.hidden=true; try{localStorage.setItem('apf-install-x','1')}catch(e){} });
+  var off=document.getElementById('offline'); function upd(){ off.hidden=navigator.onLine; }
+  addEventListener('online',upd); addEventListener('offline',upd); upd();
+})();
+
+</script>
+</body>
+</html>
